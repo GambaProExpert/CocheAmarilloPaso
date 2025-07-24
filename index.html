@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coche Amarillo - Paso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #3d3d3d;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s;
+        }
+        
+        /* Controles superiores */
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 20;
+        }
+        
+        #score {
+            font-size: 24px;
+            padding: 10px 20px;
+            border-radius: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        #combo {
+            font-size: 24px;
+            padding: 10px 20px;
+            border-radius: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #f1c40f;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #music-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 50px;
+        }
+        
+        #music-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #music-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        #volume-control {
+            width: 100px;
+            accent-color: #2b9e09;
+            cursor: pointer;
+        }
+        
+        #game-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #road {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #a09e8e, #7c7c7c);
+            overflow: hidden;
+        }
+        
+      
+        #road::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                #f1c40f,
+                #f1c40f 20px,
+                transparent 20px,
+                transparent 40px
+            );
+            z-index: 1;
+        }
+        
+        /* Coches */
+        .car {
+            position: absolute;
+            width: 200px;
+            height: 120px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            top: 30%;
+            transform: translateY(-50%);
+            right: -100px;
+            z-index: 5;
+            filter: drop-shadow(3px 5px 3px rgba(0, 0, 0, 0.5));
+            border-radius: 10px;
+        }
+        
+        /* Botón PASO */
+        #action-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 20;
+        }
+        
+        #pasoBtn {
+            padding: 15px 50px;
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(to bottom, #dce73c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        #pasoBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        #pasoBtn:active {
+            transform: scale(0.95);
+            background: linear-gradient(to bottom, #c0392b, #a5281b);
+        }
+        
+        /* Instrucciones */
+        #instructions {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-size: 16px;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        
+        /* Popups */
+        .popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 80px;
+            font-weight: bold;
+            z-index: 20;
+            animation: popupAnimation 1.5s forwards;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+        }
+        
+        @keyframes popupAnimation {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+        
+        .ouch {
+            color: #e74c3c;
+        }
+        
+        .hostia {
+            color: #f1c40f;
+        }
+        
+        .bomboclat {
+            color: #2bff00;
+            text-shadow: 0 0 10px rgba(43, 255, 0, 0.5);
+            font-size: 90px;
+        }
+        .pinchito {
+            color: #ff00a1;
+            text-shadow: 0 0 10px rgba(255, 0, 161, 0.5);
+            font-size: 90px;
+        }
+        
+        /* mensaje de inicio */
+        #start-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 24px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 20px;
+            z-index: 30;
+            max-width: 80%;
+            backdrop-filter: blur(10px);
+            border: 2px solid #f1c40f;
+            box-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+        }
+        
+        #start-message h1 {
+            color: #f1c40f;
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+        
+        #start-message p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        #start-button {
+            margin-top: 30px;
+            padding: 15px 50px;
+            font-size: 24px;
+            background: #f1c40f;
+            color: #2c3e50;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        #start-button:hover {
+            background: #f39c12;
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-controls">
+        <div id="score">Puntuación: 0</div>
+        <div id="combo">Combo: x0</div>
+        <div id="music-controls">
+            <button id="music-toggle">🔊</button>
+            <input type="range" id="volume-control" min="0" max="1" step="0.1" value="0.2">
+        </div>
+    </div>
+    
+    <div id="game-container">
+        <div id="road"></div>
+        <div id="instructions">Presiona "PASO" solo cuando pase un coche AMARILLO</div>
+        
+        <div id="start-message">
+            <h1>¡COCHE AMARILLO PASO!</h1>
+            <h3>by Gambón for Vale❤️</h3>
+            <p>Presiona el botón "PASO" cuando veas un coche amarillo pasar por la línea discontinua amarilla</p>
+            <p>✅ Gana 1 punto por cada acierto</p>
+            <p>❌ Pierde 1 punto si presionas sin coche amarillo</p>
+            <p>Consigue combo de 5 para un BOMBOCLAT</p>
+            <p>Al combo 10 hay una sorpresita</p>
+            
+            <button id="start-button">Comenzar Juego</button>
+        </div>
+    </div>
+    
+    <div id="action-container">
+        <button id="pasoBtn">PASO</button>
+    </div>
+    
+    <!-- Elementos de audio -->
+   <audio id="win-sound" src="sounds/win-sound.wav" preload="auto"></audio>
+    <audio id="lose-sound" src="sounds/lose-sound.wav" preload="auto"></audio>
+    <audio id="combo-sound" src="sounds/combo-sound.wav" preload="auto"></audio>
+    <audio id="background-music" src="sounds/background-music.mp3" preload="auto"></audio>
+    <audio id="pinchito-sound" src="sounds/pinchito-sound.wav" preload="auto"></audio>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const road = document.getElementById('road');
+            const pasoBtn = document.getElementById('pasoBtn');
+            const scoreDisplay = document.getElementById('score');
+            const comboDisplay = document.getElementById('combo');
+            const musicToggle = document.getElementById('music-toggle');
+            const volumeControl = document.getElementById('volume-control');
+            const instructions = document.getElementById('instructions');
+            const startMessage = document.getElementById('start-message');
+            const startButton = document.getElementById('start-button');
+            
+       
+            const winSound = document.getElementById('win-sound');
+            const loseSound = document.getElementById('lose-sound');
+            const comboSound = document.getElementById('combo-sound');
+            const pinchitoSound = document.getElementById('pinchito-sound');
+            const backgroundMusic = document.getElementById('background-music');
+            
+
+            //variables del juego
+            let score = 0;
+            let cars = [];
+            let combo = 0;
+            let gameRunning = false;
+            let musicPlaying = false;
+            
+            //los carriles
+            const lanes = [
+                { position: 30, occupied: false },
+                { position: 45, occupied: false },
+                { position: 60, occupied: false },
+                { position: 75, occupied: false }
+            ];
+            
+            winSound.volume = 0.7;
+            loseSound.volume = 1;
+            comboSound.volume = 0.7;
+            backgroundMusic.volume = 0.1;
+    
+            const carColors = ['red', 'blue', 'green', 'purple', 'yellow'];
+            
+            //esto inicia el juego
+            function startGame() {
+                startMessage.style.display = 'none';
+                gameRunning = true;
+                
+                initAudio();
+
+                gameLoop();
+            }
+            
+   
+            function initAudio() {
+               
+                winSound.volume = 0.7;
+                loseSound.volume = 0.7;
+                comboSound.volume = 0.7;
+                backgroundMusic.volume = volumeControl.value;
+                
+                const playPromise = backgroundMusic.play();
+
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        musicPlaying = true;
+                        musicToggle.textContent = "🔊";
+                        backgroundMusic.loop = true;
+                    }).catch(error => {
+                        console.log("La reproducción automática falló:", error);
+                        musicToggle.textContent = "▶️";
+                    });
+                }
+            }
+            
+            //Esto inicia el juego al hacer clic en el boton
+            startButton.addEventListener('click', startGame);
+            
+            //Control de volumen
+            volumeControl.addEventListener('input', () => {
+                backgroundMusic.volume = volumeControl.value;
+            });
+            
+        
+            musicToggle.addEventListener('click', () => {
+                if (musicPlaying) {
+                    backgroundMusic.pause();
+                    musicToggle.textContent = "🔇";
+                    musicPlaying = false;
+                } else {
+                    const playPromise = backgroundMusic.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            musicPlaying = true;
+                            musicToggle.textContent = "🔊";
+                        }).catch(error => {
+                            console.log("La reproducción falló:", error);
+                            musicToggle.textContent = "▶️";
+                        });
+                    }
+                }
+            });
+            
+            //Función para crear un nuevo coche
+            function createCar() {
+                //Encontrar carriles disponibles
+                const availableLanes = lanes.filter(lane => !lane.occupied);
+                
+                //Si no hay carriles disponibles, no crea coche
+                if (availableLanes.length === 0) return null;
+                
+                const car = document.createElement('div');
+                car.className = 'car';
+                
+                //Seleccionar color aleatorio
+                const colorIndex = Math.floor(Math.random() * carColors.length);
+                const color = carColors[colorIndex];
+                
+                //Seleccionar carril aleatorio disponible
+                const laneIndex = Math.floor(Math.random() * availableLanes.length);
+                const lane = availableLanes[laneIndex];
+                
+                //Marcar carril como ocupado
+                const laneIndexInOriginal = lanes.findIndex(l => l.position === lane.position);
+                lanes[laneIndexInOriginal].occupied = true;
+                
+                car.style.backgroundImage = `url('images/car-${color}.png')`;
+                car.style.top = `${lane.position}%`;
+                
+                //velocidad aleatoria
+                const speed = Math.random() * 3 + 10;
+                
+                road.appendChild(car);
+                
+                return {
+                    element: car,
+                    color: color,
+                    position: -100,
+                    speed: speed,
+                    lane: lane
+                };
+            }
+            
+            //Función para actualizar posición de los coches
+            function updateCars() {
+                for (let i = cars.length - 1; i >= 0; i--) {
+                    const car = cars[i];
+                    car.position += car.speed;
+                    car.element.style.right = `${car.position}px`;
+                    
+                    if (car.position > window.innerWidth + 200) {//Este 200 hace que los coches no desaparezcan antes de llegar al final
+                        const laneIndex = lanes.findIndex(l => l.position === car.lane.position);
+                        if (laneIndex !== -1) {
+                            lanes[laneIndex].occupied = false;
+                        }
+                        road.removeChild(car.element);
+                        cars.splice(i, 1);
+                    }
+                }
+            }
+            
+            function gameLoop() {
+                if (!gameRunning) return;
+                
+                //Crer nuevo coche aleatoriamente
+                if (Math.random() < 0.1 && cars.length < lanes.length) {
+                    const newCar = createCar();
+                    if (newCar) {
+                        cars.push(newCar);
+                    }
+                }
+                
+                updateCars();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            //Comprobar si hay coche amarillo en la zona de paso
+            function checkYellowCar() {
+                const detectionZone = window.innerWidth * 0.4;
+                
+                for (const car of cars) {
+                
+                    if (car.position > (detectionZone - 100) && car.position < (detectionZone + 100)) {
+                        if (car.color === 'yellow') {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            // Función para mostrar popup
+            function showPopup(text, className) {
+                const popup = document.createElement('div');
+                popup.className = `popup ${className}`;
+                popup.textContent = text;
+                document.body.appendChild(popup);
+                
+                //Eliminar el popup después de la animación
+                setTimeout(() => {
+                    if (popup.parentNode) {
+                        popup.parentNode.removeChild(popup);
+                    }
+                }, 800);
+            }
+            
+            function playSound(sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => {
+                    console.log("Error al reproducir sonido:", e);
+                });
+            }
+            
+            //Manejar clic en el botón PASO
+           
+            function handlePaso() {
+                if (!gameRunning) return;
+                
+                if (checkYellowCar()) {
+                    score++;
+                    combo++;
+                    
+                    //Reproducir sonido de acierto
+                    playSound(winSound);
+                    
+                    showPopup('¡TOMA HOSTIA!', 'hostia');
+                    
+                    document.body.style.backgroundColor = '#27ae60';
+                    setTimeout(() => {
+                        document.body.style.backgroundColor = '#2c3e50';
+                    }, 200);
+                } else {
+                    score--;
+                    combo = 0;
+                    if (score < 0){
+                        showPopup('ERES MALA EH', 'ouch');
+                    } else {
+                        showPopup('¡AIMAI!', 'ouch');
+                    } //Evita puntuación negativa
+                    
+                    playSound(loseSound);
+                    
+  
+                    document.body.style.backgroundColor = '#e74c3c';
+                    setTimeout(() => {
+                        document.body.style.backgroundColor = '#2c3e50';
+                    }, 200);
+                }
+                
+                //Actualizar combo
+                if (combo > 0) {
+                    if(combo === 5) {
+                        playSound(comboSound);
+                        showPopup(`¡BOMBOCLAT! x${combo}`, 'bomboclat');
+
+                    } else if(combo % 10 === 0){
+                            playSound(pinchitoSound);
+                            showPopup('¡PINCHITO PA TI!', 'pinchito');
+                        }
+                    comboDisplay.textContent = `Combo: x${combo}`;
+                    comboDisplay.style.opacity = '1';
+                } else {
+                    comboDisplay.style.opacity = '0';
+                }
+                
+                //Actualizar puntuación
+                scoreDisplay.textContent = `Puntuación: ${score}`;
+                
+                if (score > 0) {
+                    scoreDisplay.style.color = '#2ecc71';
+                } else if (score < 0) {
+                    scoreDisplay.style.color = '#e74c3c';
+                } else {
+                    scoreDisplay.style.color = 'white';
+                }
+            }
+
+            pasoBtn.addEventListener('click', handlePaso);
+
+            document.addEventListener('keydown', (e) => {
+                if (gameRunning && (e.code === 'Space' || e.key === ' ')) {
+                    e.preventDefault();
+                    handlePaso();
+                }
+            });
+    
+            window.addEventListener('resize', () => {
+                cars.forEach(car => {
+                    car.element.style.right = `${car.position}px`;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
